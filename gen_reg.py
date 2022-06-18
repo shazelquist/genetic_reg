@@ -44,41 +44,55 @@ class gen_reg:
 
     def __init__(
         self,
-        sourcetext,
-        target,
         popsize=2000,
         coding_master="0_+|^",
         temp=0,
         fresh_rate=0.2,
         regplace=None,
+        sourcetext=None,
+        target=None,
     ):
         """
         Initializes gen_reg(
         Arguments:              Type:           Desc:
-        sourcetext,             string          Text to search through
-        target,                 string          Text to attempt to generate
         popsize=2000,           even integer    Size of populations
         coding_master="0_+|^",  string          Regular Expression operations
         temp=0,                 integer         Temperature for simulated annealing
         fresh_rate=0.2,         float           Proportion of population to introduce as untrained genetic samples
         regplace=None           dictionary      Replacement for characters that require escapes
+        sourcetext,             string          Text to search through
+        target,                 string          Text to attempt to generate
         )
         """
-        self.sourcetext = sourcetext
-        self.sourcesize = len(sourcetext)
-        self.base_set = list(set(self.__clean_source__()))  # set cleaned base_set
-        self.target = target  # TODO: Remove target here in case target is not found in source text
-        self.targetsize = len(target)
+        if sourcetext and type(sourcetext) == type(""):  # use string source
+            self.sourcetext = sourcetext
+            self.sourcesize = len(sourcetext)
+            self.base_set = list(set(self.__clean_source__()))  # set cleaned base_set
+        elif sourcetext and type(sourcetext) == type(open()):  # use file source
+            self.sourcetext = sourcetext
+            self.sourcesize = len(sourcetext)
+            self.base_set = list(set(self.__clean_source__()))  # set cleaned base_set
+        else:
+            self.sourcetext = ""
+            self.sourcesize = 0
+            self.base_set = []
+        if target:
+            self.target = target  # TODO: Remove target here in case target is not found in source text
+            self.targetsize = len(target)
+        else:
+            self.target = target
+            self.targetsize = 0
         self.popsize = popsize  # must be even currently
         self.pop_count = 0
         self.coding_master = coding_master
         self.maxtemp = temp
         self.temp = temp
         self.fresh_rate = fresh_rate
-        self.reg_err = []
+        self.reg_err = []  # container for regular expression errors
         self.time = datetime.now()  # Time to use as an identifier
-        self.running = False
+        self.running = False  # Flag for telemetry collection
 
+        # sort base character set to maintain order in debug situations
         self.base_set.sort()
         self.base_set = self.base_set
 
@@ -263,6 +277,32 @@ class gen_reg:
         else:
             print('Error, new target "{}" is not in sourcetext'.format(target))
             return False
+
+    def new_source(self, sourcetext):
+        """Sets a new source and returns status"""
+        result = [i.span() for i in re.finditer(self.target, sourcetext)]
+        found = False
+        if result:
+            found = True
+        if found and sourcetext and type(sourcetext) == type(""):  # use string source
+            self.sourcetext = sourcetext
+            self.sourcesize = len(sourcetext)
+            b_set = list(set(self.__clean_source__()))  # set cleaned base_set
+        elif (
+            found and sourcetext and type(sourcetext) == type(open())
+        ):  # use file source
+            self.sourcetext = sourcetext
+            self.sourcesize = len(sourcetext)
+            b_set = set(self.__clean_source__())  # set cleaned base_set
+            b_set = list(bset + self.base_set)  # inclusivly add new set of characters
+            b_set.sort()
+            self.base_set = set(b_set)
+        else:
+            print(
+                'Error, new sourcetext does not contain target "{}"'.format(self.target)
+            )
+            return False
+        return True
 
     def generate_gene(self, targetsize=None):  # target length
         """Generate initial population genetic material"""
@@ -455,12 +495,19 @@ class gen_reg:
             self.telem["matched"][-1].append(len(result))
         return result
 
-    def run_population(self, pop):
+    def run_population(self, pop, modifier = 1.0001):
         """Given a population, runs parameters to produce new population"""
+        if not self.target or not self.sourcetext:
+            print(
+                'Invalid start status, target = "{}" len(source) = {}'.format(
+                    self.target, len(self.sourcetext)
+                )
+            )
+            exit(1)
         # sample reference, fullname
         print("Running population")
         self.running = True
-        modifier = 1.0001
+        #modifier = 1.0001
         if type(pop) != type(
             dict()
         ):  # first run will need to calculate population as well
@@ -673,13 +720,19 @@ def main():
 
     text = open(filename, "r", encoding="utf-8").read()
     prop_doc = gen_reg(
-        text, target, popsize=2000, coding_master=operations, fresh_rate=0.3, temp=temp
+        sourcetext=text,
+        target=target,
+        popsize=2000,
+        coding_master=operations,
+        fresh_rate=0.3,
+        temp=temp,
     )
 
     population_n = 0
     cont = True
     pop = prop_doc.generate_population(size=prop_doc.popsize)
     SA = prop_doc.temp != 0
+    mf = 0.0
     while cont:
         for i in range(0, repeats):
             pop, mf = prop_doc.run_population(pop)
