@@ -495,7 +495,7 @@ class gen_reg:
             self.telem["matched"][-1].append(len(result))
         return result
 
-    def run_population(self, pop, modifier = 1.0001):
+    def run_population(self, pop, modifier=1.0001):
         """Given a population, runs parameters to produce new population"""
         if not self.target or not self.sourcetext:
             print(
@@ -507,7 +507,7 @@ class gen_reg:
         # sample reference, fullname
         print("Running population")
         self.running = True
-        #modifier = 1.0001
+        # modifier = 1.0001
         if type(pop) != type(
             dict()
         ):  # first run will need to calculate population as well
