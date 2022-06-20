@@ -18,7 +18,7 @@ from os import listdir
 
 
 def enumfiles(path):
-    files = listdir(path)
+    files = [fn for fn in listdir(path) if ".json" in fn]
     savs = {}
     print("{} files found".format(len(files)))
     for f in files:
