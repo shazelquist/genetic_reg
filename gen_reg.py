@@ -83,7 +83,7 @@ class gen_reg:
             self.target = target
             self.targetsize = 0
         self.popsize = popsize  # must be even currently
-        self.pop_count = 0
+        self.generation = 0
         self.coding_master = coding_master
         self.maxtemp = temp
         self.temp = temp
@@ -161,6 +161,10 @@ class gen_reg:
 
     def dump_pop(self, pop):
         """Given population, dump to target save_file"""
+        if self.generation == 0 and type(pop) == type([]):
+            pop = {"population": pop}
+        else:
+            pop = {"population": pop["population"]}
         with open(
             "pop/population_{}_.json".format(self.time)
             .replace(" ", "+")
@@ -168,9 +172,9 @@ class gen_reg:
             "a",
             encoding="utf-8",
         ) as savfile:
-            savfile.write("{}\n".format(dumps(pop)))
+            savfile.write("{}:{},\n".format(self.generation, dumps(pop)))
         print(
-            'Wrote population datat to "pop/population_{}_.json"'.format(self.time)
+            'Wrote_population_data_to:"pop/population_{}_.json"'.format(self.time)
             .replace(" ", "+")
             .replace(":", "~")
         )
@@ -646,8 +650,8 @@ class gen_reg:
             # eo Simulated annealing
 
         self.temp -= 1
-        self.pop_count += 1
         self.__repop_telem__()
+        self.generation += 1
         self.running = False
         return {"population": newpop, "fitness": newfit}, maxfit_t
 
@@ -731,12 +735,14 @@ def main():
     population_n = 0
     cont = True
     pop = prop_doc.generate_population(size=prop_doc.popsize)
+    prop_doc.dump_pop(pop)
     SA = prop_doc.temp != 0
     mf = 0.0
     while cont:
         for i in range(0, repeats):
             pop, mf = prop_doc.run_population(pop)
-            population_n += 1
+            prop_doc.dump_pop(pop)
+            population_n = prop_doc.generation
             if mf == 1:
                 print("\n\nSOLUTION REACHED after {} populations".format(population_n))
                 cont = False
