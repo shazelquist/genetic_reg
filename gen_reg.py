@@ -32,7 +32,7 @@
 # Imports:
 from sys import path
 from sys import argv
-from json import dumps
+from json import dumps, loads
 from datetime import datetime
 import numpy as np
 import random
@@ -64,6 +64,8 @@ class gen_reg:
         target,                 string          Text to attempt to generate
         )
         """
+        if regplace:
+            self.regplace = regplace
         if sourcetext and type(sourcetext) == type(""):  # use string source
             self.sourcetext = sourcetext
             self.sourcesize = len(sourcetext)
@@ -183,31 +185,12 @@ class gen_reg:
         """Cleans text of characters requiring escapes (regplace:dict) of characters to escaped characters"""
         # convert items to a regex target friendly characterset IE: ' '-> '\s' and generally inserts excape characters when needed
         text = list(set(self.sourcetext))
-        if not regplace:
-            regplace = {
-                " ": "\s",
-                "<": "\<",
-                ">": "\>",
-                "[": "\[",
-                "]": "\]",
-                "(": "\(",
-                ")": "\)",
-                "/": "\/",
-                ":": "\:",
-                "◦": "\◦",
-                "•": "\•",
-                "-": "\-",
-                "\t": "\\t",
-                "\n": "\\n",
-                "^": "\^",
-                "“": "\“",
-                "”": "\”",
-                "'": "\\'",
-                "’": "\’",
-                '"': '\\"',
-                "…": "\…",
-                "▪": "\▪",
-            }
+        if not regplace and not self.regplace:
+            with open("config/regplace.json", "r", encoding="utf-8") as regplacefile:
+                regplace = loads(regplacefile.read())
+                self.regplace = regplace
+        elif self.regplace:
+            regplace = self.regplace
         for s, r in zip(regplace.keys(), regplace.values()):
             if s in text:
                 text[text.index(s)] = r
@@ -316,6 +299,7 @@ class gen_reg:
         coding = ""
         minlen = 3
         maxlen = targetsize + (targetsize - minlen)
+        # The probability threshold of multiple characters in a character set
         gcount = [0.5, 0.7, 0.95]
         count = 3
         genelen = minlen + int(
@@ -397,10 +381,9 @@ class gen_reg:
         if not sample and False:  # no sample given
             print("no sample")
             return 0.0
-        # print([i[1]-i[0] for i in reference])
         full = fullrange  # (0,30)    # full range of text
         ref_size = sum([i[1] - i[0] for i in self.target_reference])
-        score = 0  # matchpoint-matchpoint*(not sample)
+        score = 0
         history = []
         for targ in self.target_reference:
             for samp in sample:
@@ -425,16 +408,18 @@ class gen_reg:
                     rpenal += samp[1] - samp[0]
                 else:
                     pass
-                history.append(
-                    (rpoint) / (ref_size) - rpenal / (full[1] - ref_size)
-                )  # (Bonus/size)/match penalty
+                history.append((rpoint) / (ref_size) - rpenal / (full[1] - ref_size))
+        # pick the top target_n scores and add collection
         history.sort(reverse=True)
         history = history[: len(self.target_reference)]  # top N items
+        score = sum(history)
 
-        score = sum(history)  # /len(history)
+        # adjust score for allotment of base matches and match score
         score = matchpoint + (1 - matchpoint) * score / (
             1 + abs(len(sample) - len(self.target_reference))
         )
+
+        # Massively failing matches fall back on independent scoring
         if score < 0:
             score = matchpoint - abs(score) * matchpoint
         return score
@@ -495,7 +480,6 @@ class gen_reg:
                 self.telem["matched"][-1].append(0)
             return
         if self.running:
-            # input('matched: {}'.format(self.telem['matched']))
             self.telem["matched"][-1].append(len(result))
         return result
 
@@ -508,10 +492,8 @@ class gen_reg:
                 )
             )
             exit(1)
-        # sample reference, fullname
         print("Running population")
         self.running = True
-        # modifier = 1.0001
         if type(pop) != type(
             dict()
         ):  # first run will need to calculate population as well
@@ -527,8 +509,8 @@ class gen_reg:
         else:
             fit = pop["fitness"]
             pop = pop["population"]
-        # newfit=[]
 
+        # generat mean and avg difference from mean
         mean = sum(fit) / len(fit)
         df_mean = [abs(i - mean) for i in fit]
 
@@ -581,7 +563,9 @@ class gen_reg:
                 self.telem["matched"][-2][winner_i]
             )
         )
-        while len(newpop) < len(pop):
+        while len(newpop) < len(
+            pop
+        ):  # TODO: verify/reformat for a more accurate implementation of SA
             # Randomly choose two parents, based on the adjusted fitness
             parent_ai, parent_bi = np.random.choice(refnum, 2, p=adjusted)  # ,None
             parent_a = pop[parent_ai]
@@ -649,58 +633,12 @@ class gen_reg:
                     newpop.append(newchildren[0])
             # eo Simulated annealing
 
+        # update telemetry information
         self.temp -= 1
         self.__repop_telem__()
         self.generation += 1
         self.running = False
         return {"population": newpop, "fitness": newfit}, maxfit_t
-
-    def get_random(self, index=None):  # Depreciated
-        """
-        Generate a rendom number from a file as a replacement for random.random()
-        Useful for debugging to generate the same results for each run.
-        NOTICE: Depreciated
-        """
-        global rand_index
-        global sourcefile
-        if not sourcefile:
-            sourcefile = open("rand.csv", "r")
-        if RANDOM:
-            return random.random()
-        if index:
-            rand_index = index
-        num = -1
-        if rand_index >= maxind:
-            rand_index = 0
-            print("\n\n\nEOF\n\n\n")
-
-        sourcefile.seek(22 * rand_index)
-        num = sourcefile.read(18)
-        rand_index += 1
-
-        return float(num)
-
-
-def generate_num():  # Depreciated
-    """Generate file with random numbers 0-1 seperated by ", " DEPRECIATED"""
-    f = open("rand.csv", "w")
-    i = 0
-    while i < maxind:
-        f.write("{:.18f}, ".format(random.random()))
-        print("{} entries {}".format("\x1b[K1", i), end="\r")
-        i += 1
-        # input()
-
-
-def obtain_sample(fname="sample.txt"):
-    """split file into set of characters"""
-    sample = ""
-    with open(fname, encoding="utf-8") as sfile:
-        sample = sfile.read()
-    if not sample:
-        print("no sample obtained")  # stderr
-        exit(1)
-    return set(sample)
 
 
 def main():
