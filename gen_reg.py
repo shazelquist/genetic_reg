@@ -152,7 +152,7 @@ class gen_reg:
             "w",
             encoding="utf-8",
         ) as jsonfile:
-            jsonfile.write(dumps(sav))
+            jsonfile.write(dumps(sav), indent=4)
             print(
                 'Wrote save to "{}"'.format(
                     "telemetry/telem_sav_{}_.json".format(self.time)
@@ -174,7 +174,7 @@ class gen_reg:
             "a",
             encoding="utf-8",
         ) as savfile:
-            savfile.write("{}:{},\n".format(self.generation, dumps(pop)))
+            savfile.write("{}:{},\n".format(self.generation, dumps(pop, indent=4)))
         print(
             'Wrote_population_data_to:"pop/population_{}_.json"'.format(self.time)
             .replace(" ", "+")
