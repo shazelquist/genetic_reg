@@ -185,7 +185,7 @@ class gen_reg:
         """Cleans text of characters requiring escapes (regplace:dict) of characters to escaped characters"""
         # convert items to a regex target friendly characterset IE: ' '-> '\s' and generally inserts excape characters when needed
         text = list(set(self.sourcetext))
-        if not regplace and not self.regplace:
+        if not regplace and not hasattr(self, "regplace"):
             with open("config/regplace.json", "r", encoding="utf-8") as regplacefile:
                 regplace = loads(regplacefile.read())
                 self.regplace = regplace
