@@ -18,3 +18,6 @@ This project is ported from an assignment, and generally for personal use.
 ![non_coding](https://user-images.githubusercontent.com/11480905/174935389-5e2d2b36-312d-4ff2-ae3a-35c256f88af3.png)
 #### Direct comparison
 ![comparing_coding_noncoding](https://user-images.githubusercontent.com/11480905/174936520-963f40a1-7299-470c-908f-66a7ff435fa0.png)
+
+## Run quick start
+``$./gen_reg.py sourcetext_filename, Target, Populations, Operation_sequence``
