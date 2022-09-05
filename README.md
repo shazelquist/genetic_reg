@@ -20,4 +20,15 @@ This project is ported from an assignment, and generally for personal use.
 ![comparing_coding_noncoding](https://user-images.githubusercontent.com/11480905/174936520-963f40a1-7299-470c-908f-66a7ff435fa0.png)
 
 ## Run quick start
-``$./gen_reg.py sourcetext_filename, Target, Populations, Operation_sequence``
+### Installation:
+ 1. ``$ git clone https://github.com/shazelquist/genetic_reg.git``
+You may wish to edit the hashbangs in any python file to your configuration.
+ 2. ``pip install -r requirements.txt``
+Using a virtualenv or some other package manager like conda is highly recomended.
+You may also need to change file permissions ``$ chmod u+x *.py``
+
+## Let's get started
+``$ ./gen_reg.py sourcetext_filename, Target, Populations, Operation_sequence``
+Details on valid parameters will be made avaliable.
+You also may want to test with default parameters.
+``$ ./gen_reg.py``
